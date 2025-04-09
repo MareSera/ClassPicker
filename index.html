@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>课堂随机点名</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            background: #f0f9ff;
+            background: linear-gradient(135deg, #f0f9ff 0%, #cbebff 100%);
+            position: relative;
+        }
+
+        .animation-toggle {
+            position: absolute;
+            bottom: 80px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .unique-toggle {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #e67e22;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-top: 50px;
+            width: 80%;
+            max-width: 600px;
+            margin: auto;
+        }
+
+        .school-name {
+            color: #666;
+            font-size: 0.8em;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .file-input {
+            position: relative;
+            display: inline-block;
+            margin: 15px 0;
+        }
+
+        .file-input input[type="file"] {
+            opacity: 0;
+            width: 0.1px;
+            height: 0.1px;
+            position: absolute;
+        }
+
+        .file-input label {
+            display: block;
+            padding: 12px 25px;
+            background: #3498db;
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1em;
+        }
+
+        .file-input label:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52,152,219,0.4);
+        }
+
+        #count {
+            padding: 12px;
+            font-size: 1.1em;
+            border: 2px solid #3498db;
+            border-radius: 25px;
+            width: 160px;
+            text-align: center;
+            margin: 15px 0;
+            transition: all 0.3s ease;
+        }
+
+        #count:focus {
+            outline: none;
+            border-color: #2980b9;
+            box-shadow: 0 0 8px rgba(52,152,219,0.3);
+            margin: auto;
+        }
+
+        button {
+            padding: 15px 40px;
+            font-size: 1.2em;
+            cursor: pointer;
+            background: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            background: #27ae60;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46,204,113,0.4);
+        }
+
+        #resetBtn {
+            display: none;
+            background: #e74c3c;
+            margin-left: 10px;
+        }
+
+        #remainingCount {
+            display: none;
+            color: #7f8c8d;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+
+        #result {
+            font-size: 2em;
+            margin: 30px 0;
+            min-height: 120px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            width: 80%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            animation: fadeIn 0.5s ease;
+            text-align: center;
+            margin: auto;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .student-name {
+            color: #e74c3c;
+            font-weight: bold;
+            margin: 5px;
+            padding: 8px 15px;
+            background: rgba(231,76,60,0.1);
+            border-radius: 20px;
+            display: inline-block;
+            min-width: 120px;
+        }
+
+        .status-text {
+            color: #7f8c8d;
+            font-size: 0.6em;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .blink {
+            animation: blink 0.1s infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+    <button class="animation-toggle" onclick="toggleAnimation()">动效：开启</button>
+    <button class="unique-toggle" onclick="toggleUniqueMode()">不重复点名：关闭</button>
+    
+    <div class="container">
+        <div class="school-name">潍坊市寒亭区第一中学</div>
+        <h1>🎓 课堂随机点名</h1>
+        <div class="file-input">
+            <input type="file" id="fileInput" accept=".txt">
+            <label for="fileInput">📂 上传学生名单</label>
+        </div>
+        <br>
+        <input type="number" id="count" placeholder="请输入抽取人数" min="1" value="1">
+        <br>
+        <div id="remainingCount"></div>
+        <button onclick="startLottery()">🚀 开始随机点名</button>
+        <button id="resetBtn" onclick="resetUniqueMode()">🔄 重置名单</button>
+        <div id="result">
+            <div class="status-text">等待上传名单...</div>
+        </div>
+    </div>
+
+    <script>
+        var names = [];
+        var availableNames = [];
+        var animationEnabled = true;
+        var uniqueModeEnabled = false;
+        var animationInterval;
+        var recentPicks = []; // 新增：存储最近10次点名记录
+
+        function toggleAnimation() {
+            animationEnabled = !animationEnabled;
+            document.querySelector('.animation-toggle').textContent = 
+                `动效：${animationEnabled ? '开启' : '关闭'}`;
+        }
+
+        function toggleUniqueMode() {
+            uniqueModeEnabled = !uniqueModeEnabled;
+            document.querySelector('.unique-toggle').textContent = 
+                `不重复点名：${uniqueModeEnabled ? '开启' : '关闭'}`;
+            document.getElementById('resetBtn').style.display = 
+                uniqueModeEnabled ? 'inline-block' : 'none';
+            document.getElementById('remainingCount').style.display = 
+                uniqueModeEnabled ? 'block' : 'none';
+            
+            if (uniqueModeEnabled) {
+                availableNames = [...names];
+                updateRemainingCount();
+            }
+        }
+
+        function resetUniqueMode() {
+            if (uniqueModeEnabled) {
+                availableNames = [...names];
+                updateRemainingCount();
+                alert("名单已重置！");
+            }
+        }
+
+        function updateRemainingCount() {
+            document.getElementById('remainingCount').textContent = 
+                `剩余可点人数：${availableNames.length}`;
+        }
+
+        function showDuplicates(duplicates) {
+            let message = `发现 ${duplicates.length} 个重复姓名：\n`;
+            message += duplicates.slice(0, 5).join(', ');
+            if (duplicates.length > 5) message += ' 等...';
+            alert(message);
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            if (!file) return;
+            
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                let allNames = e.target.result.split(/[\r\n]+/g)
+                    .map(name => name.trim())
+                    .filter(name => name !== '');
+
+                const nameMap = {};
+                const duplicates = [];
+                names = [];
+                
+                allNames.forEach(name => {
+                    if (nameMap[name]) {
+                        duplicates.push(name);
+                    } else {
+                        names.push(name);
+                        nameMap[name] = true;
+                    }
+                });
+
+                if (uniqueModeEnabled) {
+                    availableNames = [...names];
+                    updateRemainingCount();
+                }
+
+                if (duplicates.length > 0) {
+                    showDuplicates(duplicates);
+                }
+
+                document.getElementById('result').innerHTML = `
+                    <div class="status-text">已加载 ${names.length} 位学生名单</div>
+                `;
+            };
+            reader.readAsText(file);
+        });
+
+        function startLottery() {
+            if (names.length === 0) {
+                alert('请先上传学生名单文件');
+                return;
+            }
+            
+            var count = parseInt(document.getElementById('count').value) || 1;
+            if (count < 1) count = 1;
+            
+            let tempNames = [];
+            if (uniqueModeEnabled) {
+                tempNames = [...availableNames];
+            } else {
+                // 新增：排除最近10次点名的学生
+                const recentSet = new Set(recentPicks);
+                tempNames = names.filter(name => !recentSet.has(name));
+                // 如果过滤后名单为空，则重置最近记录
+                if (tempNames.length === 0) {
+                    recentPicks = [];
+                    tempNames = [...names];
+                }
+            }
+
+            let finalNames = [];
+
+            if (animationEnabled) {
+                let iterations = 0;
+                const maxIterations = 30;
+                let resultDiv = document.getElementById('result');
+                resultDiv.classList.add('blink');
+
+                clearInterval(animationInterval);
+                animationInterval = setInterval(() => {
+                    let temp = [];
+                    for (let i = 0; i < count && tempNames.length > 0; i++) {
+                        let randomIndex = Math.floor(Math.random() * tempNames.length);
+                        temp.push(tempNames[randomIndex]);
+                    }
+                    displayResult(temp, true);
+                    
+                    if (iterations++ >= maxIterations) {
+                        clearInterval(animationInterval);
+                        resultDiv.classList.remove('blink');
+                        finalNames = getFinalResult(tempNames, count);
+                        displayResult(finalNames);
+                        if (uniqueModeEnabled) {
+                            availableNames = availableNames.filter(name => 
+                                !finalNames.includes(name));
+                            updateRemainingCount();
+                        }
+                        // 新增：更新最近点名记录
+                        updateRecentPicks(finalNames);
+                    }
+                }, 50);
+            } else {
+                finalNames = getFinalResult(tempNames, count);
+                displayResult(finalNames);
+                if (uniqueModeEnabled) {
+                    availableNames = availableNames.filter(name => 
+                        !finalNames.includes(name));
+                    updateRemainingCount();
+                }
+                // 新增：更新最近点名记录
+                updateRecentPicks(finalNames);
+            }
+        }
+
+        // 新增：更新最近点名记录的函数
+        function updateRecentPicks(newPicks) {
+            recentPicks.push(...newPicks);
+            // 保持最多10条记录
+            while (recentPicks.length > 10) {
+                recentPicks.shift();
+            }
+        }
+
+        function getFinalResult(tempNames, count) {
+            let result = [];
+            for (let i = 0; i < count && tempNames.length > 0; i++) {
+                let randomIndex = Math.floor(Math.random() * tempNames.length);
+                result.push(tempNames[randomIndex]);
+                tempNames.splice(randomIndex, 1);
+            }
+            return result;
+        }
+
+        function displayResult(result, isTemp = false) {
+            var resultDiv = document.getElementById('result');
+            if (result.length > 0) {
+                var namesHTML = result.map(name => 
+                    `<div class="student-name">${isTemp ? '✨' : '🎉'} ${name}</div>`
+                ).join('');
+                resultDiv.innerHTML = `
+                    <div style="color:#2c3e50; margin-bottom:15px; width:100%;">
+                        本次被点名的同学：
+                    </div>
+                    ${namesHTML}
+                    <div class="status-text">${new Date().toLocaleString()}</div>
+                `;
+            } else {
+                resultDiv.innerHTML = '<div class="status-text">⚠️ 名单中没有学生信息</div>';
+            }
+        }
+    </script>
+</body>
+</html>
