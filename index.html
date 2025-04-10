@@ -44,7 +44,7 @@
 
         .animation-toggle {
             position: absolute;
-            bottom: 80px;
+            bottom: 200px;
             left: 20px;
             padding: 10px 20px;
             background: #3498db;
@@ -58,7 +58,7 @@
 
         .unique-toggle {
             position: absolute;
-            bottom: 20px;
+            bottom: 140px;
             left: 20px;
             padding: 10px 20px;
             background: #e67e22;
@@ -226,11 +226,35 @@
         @keyframes blink {
             50% { opacity: 0.3; }
         }
+        .mode-toggle {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #9b59b6;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        #startBtn.stop-mode {
+            background: #e74c3c;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
-    <button class="animation-toggle" onclick="toggleAnimation()">动效：开启</button>
-    <button class="unique-toggle" onclick="toggleUniqueMode()">不重复点名：关闭</button>
+    <button class="mode-toggle" onclick="toggleStopMode()">停止模式：自动</button>
+    <button class="animation-toggle" onclick="toggleAnimation()" style="bottom: 140px;">动效：开启</button>
+    <button class="unique-toggle" onclick="toggleUniqueMode()" style="bottom: 80px;">不重复点名：关闭</button>
     
     <div class="container">
         <div class="school-name">潍坊市寒亭区第一中学</div>
@@ -243,7 +267,7 @@
         <input type="number" id="count" placeholder="请输入抽取人数" min="1" value="1">
         <br>
         <div id="remainingCount"></div>
-        <button onclick="startLottery()">🚀 开始随机点名</button>
+        <button id="startBtn" onclick="handleStart()">🚀 开始随机点名</button>
         <button id="resetBtn" onclick="resetUniqueMode()">🔄 重置名单</button>
         <div id="result">
             <div class="status-text">等待上传名单...</div>
@@ -256,12 +280,55 @@
         var animationEnabled = true;
         var uniqueModeEnabled = false;
         var animationInterval;
-        var recentPicks = []; // 新增：存储最近10次点名记录
+        var recentPicks = []; 
+        var isAutoStop = true; 
+        var manualStopRequested = false; 
+        var isRunning = false;
+
+        function handleStart() {
+            const btn = document.getElementById('startBtn');
+            
+            if (!isRunning) {
+                btn.textContent = "🚀 开始随机点名";
+                btn.classList.remove('stop-mode');
+            }
+
+            if (!isAutoStop && isRunning) {
+                // 手动模式下的停止操作
+                manualStopRequested = true;
+                btn.textContent = "🚀 开始随机点名";
+                btn.classList.remove('stop-mode');
+                isRunning = false;
+            } else {
+                // 新增名单检查
+                if (names.length === 0) {
+                    showToast('请先上传学生名单文件');
+                    // 重置按钮状态
+                    btn.textContent = "🚀 开始随机点名";
+                    btn.classList.remove('stop-mode');
+                    isRunning = false;
+                    return;
+                }
+                
+                // 开始操作
+                isRunning = true;
+                if (!isAutoStop) {
+                    btn.textContent = "⏹ 停止抽选";
+                    btn.classList.add('stop-mode');
+                }
+                startLottery();
+            }
+        }
 
         function toggleAnimation() {
             animationEnabled = !animationEnabled;
             document.querySelector('.animation-toggle').textContent = 
                 `动效：${animationEnabled ? '开启' : '关闭'}`;
+        }
+        function toggleStopMode() {
+            isAutoStop = !isAutoStop;
+            document.querySelector('.mode-toggle').textContent = 
+                `停止模式：${isAutoStop ? '自动' : '手动'}`;
         }
 
         function toggleUniqueMode() {
@@ -339,67 +406,98 @@
         });
 
         function startLottery() {
-            if (names.length === 0) {
-                showToast('请先上传学生名单文件');
-                return;
-            }
-            
-            var count = parseInt(document.getElementById('count').value) || 1;
-            if (count < 1) count = 1;
-            
-            let tempNames = [];
-            if (uniqueModeEnabled) {
-                tempNames = [...availableNames];
-            } else {
-                const recentSet = new Set(recentPicks);
-                tempNames = names.filter(name => !recentSet.has(name));
-                if (tempNames.length === 0) {
-                    recentPicks = [];
-                    tempNames = [...names];
+                clearInterval(animationInterval);  
+                if (!checkAvailableNames()) return;
+
+                if (names.length === 0) {
+                    showToast('请先上传学生名单文件');
+                    return;
                 }
-            }
 
-            let finalNames = [];
-
-            if (animationEnabled) {
-                let iterations = 0;
-                const maxIterations = 30;
-                let resultDiv = document.getElementById('result');
-                resultDiv.classList.add('blink');
-
-                clearInterval(animationInterval);
-                animationInterval = setInterval(() => {
-                    let temp = [];
-                    for (let i = 0; i < count && tempNames.length > 0; i++) {
-                        let randomIndex = Math.floor(Math.random() * tempNames.length);
-                        temp.push(tempNames[randomIndex]);
-                    }
-                    displayResult(temp, true);
-                    
-                    if (iterations++ >= maxIterations) {
-                        clearInterval(animationInterval);
-                        resultDiv.classList.remove('blink');
-                        finalNames = getFinalResult(tempNames, count);
-                        displayResult(finalNames);
-                        if (uniqueModeEnabled) {
-                            availableNames = availableNames.filter(name => 
-                                !finalNames.includes(name));
-                            updateRemainingCount();
-                        }
-                        updateRecentPicks(finalNames);
-                    }
-                }, 50);
-            } else {
-                finalNames = getFinalResult(tempNames, count);
-                displayResult(finalNames);
+                manualStopRequested = false;
+                var count = parseInt(document.getElementById('count').value) || 1;
+                if (count < 1) count = 1;
+                
+                let tempNames = [];
                 if (uniqueModeEnabled) {
-                    availableNames = availableNames.filter(name => 
-                        !finalNames.includes(name));
-                    updateRemainingCount();
+                    tempNames = [...availableNames];
+                } else {
+                    const recentSet = new Set(recentPicks);
+                    tempNames = names.filter(name => !recentSet.has(name));
+                    if (tempNames.length === 0) {
+                        recentPicks = [];
+                        tempNames = [...names];
+                    }
                 }
-                updateRecentPicks(finalNames);
+
+                let finalNames = [];
+                let currentTemp = [];
+
+                if (animationEnabled) {
+                    let iterations = 0;
+                    const maxIterations = 30;
+                    let resultDiv = document.getElementById('result');
+                    resultDiv.classList.add('blink');
+
+                    clearInterval(animationInterval);
+                    animationInterval = setInterval(() => {
+                        // 使用临时池进行动画展示
+                        let tempPool = [...tempNames];
+                        currentTemp = [];
+                        for (let i = 0; i < count && tempPool.length > 0; i++) {
+                            let randomIndex = Math.floor(Math.random() * tempPool.length);
+                            currentTemp.push(tempPool[randomIndex]);
+                        }
+                        displayResult(currentTemp, true);
+                        
+                        if ((isAutoStop && iterations++ >= maxIterations) || 
+                            (!isAutoStop && manualStopRequested)) {
+                            clearInterval(animationInterval);
+                            const btn = document.getElementById('startBtn');
+                            btn.textContent = "🚀 开始随机点名";
+                            btn.classList.remove('stop-mode');
+                            isRunning = false;
+                            resultDiv.classList.remove('blink');
+                            // 从原始tempNames获取最终结果
+                            finalNames = getFinalResult(tempNames, count);
+                            displayResult(finalNames);
+                            if (uniqueModeEnabled) {
+                                availableNames = availableNames.filter(name => 
+                                    !finalNames.includes(name));
+                                updateRemainingCount();
+                            }
+                            updateRecentPicks(finalNames);
+                            manualStopRequested = false;
+                            resultDiv.onclick = null;
+                        }
+                    }, 50);
+                    if (!isAutoStop) {
+                        resultDiv.onclick = function() {
+                            manualStopRequested = true;
+                            this.onclick = null;
+                            const btn = document.getElementById('startBtn');
+                            btn.textContent = "🚀 开始随机点名";
+                            btn.classList.remove('stop-mode');
+                        }
+                    }
+                } else {
+                    clearInterval(animationInterval);
+                    finalNames = getFinalResult(tempNames, count);
+                    displayResult(finalNames);
+                    if (uniqueModeEnabled) {
+                        availableNames = availableNames.filter(name => 
+                            !finalNames.includes(name));
+                        updateRemainingCount();
+                    }
+                    updateRecentPicks(finalNames);
+                    const btn = document.getElementById('startBtn');
+                    btn.textContent = "🚀 开始随机点名";
+                    btn.classList.remove('stop-mode');
+                    isRunning = false;
+                    manualStopRequested = false;
+                }
             }
-        }
+
 
         function updateRecentPicks(newPicks) {
             recentPicks.push(...newPicks);
@@ -407,7 +505,17 @@
                 recentPicks.shift();
             }
         }
-
+        function checkAvailableNames() {
+            if (uniqueModeEnabled && availableNames.length === 0) {
+                showToast("所有学生都已点过名！"); // 修改alert为showToast
+                const btn = document.getElementById('startBtn');
+                btn.textContent = "🚀 开始随机点名";
+                btn.classList.remove('stop-mode');
+                isRunning = false;
+                return false;
+            }
+            return true;
+        }
         function getFinalResult(tempNames, count) {
             let result = [];
             for (let i = 0; i < count && tempNames.length > 0; i++) {
