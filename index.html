@@ -351,10 +351,8 @@
             if (uniqueModeEnabled) {
                 tempNames = [...availableNames];
             } else {
-                // 新增：排除最近10次点名的学生
                 const recentSet = new Set(recentPicks);
                 tempNames = names.filter(name => !recentSet.has(name));
-                // 如果过滤后名单为空，则重置最近记录
                 if (tempNames.length === 0) {
                     recentPicks = [];
                     tempNames = [...names];
@@ -388,7 +386,6 @@
                                 !finalNames.includes(name));
                             updateRemainingCount();
                         }
-                        // 新增：更新最近点名记录
                         updateRecentPicks(finalNames);
                     }
                 }, 50);
@@ -400,15 +397,12 @@
                         !finalNames.includes(name));
                     updateRemainingCount();
                 }
-                // 新增：更新最近点名记录
                 updateRecentPicks(finalNames);
             }
         }
 
-        // 新增：更新最近点名记录的函数
         function updateRecentPicks(newPicks) {
             recentPicks.push(...newPicks);
-            // 保持最多10条记录
             while (recentPicks.length > 10) {
                 recentPicks.shift();
             }
@@ -438,7 +432,7 @@
                     <div class="status-text">${new Date().toLocaleString()}</div>
                 `;
             } else {
-                resultDiv.innerHTML = '<div class="status-text">⚠️ 名单中没有学生信息</div>';
+                resultDiv.innerHTML = '<div class="status-text">⚠️ 名单中没有剩余可点的学生信息</div>';
             }
         }
         function showToast(message, duration = 3000) {
