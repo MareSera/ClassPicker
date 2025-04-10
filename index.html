@@ -4,6 +4,32 @@
     <meta charset="UTF-8">
     <title>课堂随机点名</title>
     <style>
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 5px;
+            display: none;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .toast.hide {
+            animation: slideOut 0.3s ease-in forwards;
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); }
+            to { transform: translateX(100%); }
+        }
         body {
             display: flex;
             flex-direction: column;
@@ -257,7 +283,7 @@
             if (uniqueModeEnabled) {
                 availableNames = [...names];
                 updateRemainingCount();
-                alert("名单已重置！");
+                showToast("名单已重置！");
             }
         }
 
@@ -267,10 +293,10 @@
         }
 
         function showDuplicates(duplicates) {
-            let message = `发现 ${duplicates.length} 个重复姓名：\n`;
+            let message = `已自动过滤发现的 ${duplicates.length} 个重复姓名：\n`;
             message += duplicates.slice(0, 5).join(', ');
             if (duplicates.length > 5) message += ' 等...';
-            alert(message);
+            showToast(message);
         }
 
         document.getElementById('fileInput').addEventListener('change', function(e) {
@@ -314,7 +340,7 @@
 
         function startLottery() {
             if (names.length === 0) {
-                alert('请先上传学生名单文件');
+                showToast('请先上传学生名单文件');
                 return;
             }
             
@@ -415,6 +441,19 @@
                 resultDiv.innerHTML = '<div class="status-text">⚠️ 名单中没有学生信息</div>';
             }
         }
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.display = 'block';
+            toast.classList.remove('hide');
+            setTimeout(() => {
+                toast.classList.add('hide');
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 300);
+            }, duration);
+        }
     </script>
+    <div id="toast" class="toast"></div>
 </body>
 </html>
