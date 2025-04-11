@@ -13,7 +13,7 @@
             padding: 15px 25px;
             border-radius: 5px;
             display: none;
-            z-index: 1000;
+            z-index: 9999;
             animation: slideIn 0.3s ease-out;
         }
 
@@ -40,6 +40,7 @@
             background: #f0f9ff;
             background: linear-gradient(135deg, #f0f9ff 0%, #cbebff 100%);
             position: relative;
+            overflow-x: hidden;
         }
 
         .animation-toggle {
@@ -249,9 +250,104 @@
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
+        /* 夸夸按钮样式 */
+        .praise-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #f1c40f;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        /* 夸夸榜样式 */
+        .praise-list {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            width: 200px;
+            z-index: 999;
+        }
+
+        .list-header {
+            padding: 10px;
+            background: #f1c40f;
+            color: white;
+            border-radius: 10px 10px 0 0;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .list-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .list-content.expanded {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .student-praise-item {
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .praise-count {
+            color: #e74c3c;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .emoji-effect {
+            position: fixed;
+            font-size: 2rem;
+            animation: emoji-rise 2s ease-out forwards;
+            opacity: 0;
+            pointer-events: none;
+            filter: drop-shadow(0 0 8px rgba(255,215,0,0.5));
+        }
+
+        @keyframes emoji-rise {
+            0% {
+                transform: translateY(0) scale(0.5);
+                opacity: 1;
+            }
+            50% {
+                transform: translateY(-100px) scale(1.2);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(-200px) scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* 可选旋转动画 */
+        @keyframes emoji-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+
+
+
     </style>
 </head>
 <body>
+    <button class="praise-btn" onclick="handlePraise()">🌟 夸一夸</button>
     <button class="mode-toggle" onclick="toggleStopMode()">停止模式：自动</button>
     <button class="animation-toggle" onclick="toggleAnimation()" style="bottom: 140px;">动效：开启</button>
     <button class="unique-toggle" onclick="toggleUniqueMode()" style="bottom: 80px;">不重复点名：关闭</button>
@@ -275,15 +371,122 @@
     </div>
 
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            updatePraiseList();
+        });
         var names = [];
         var availableNames = [];
         var animationEnabled = true;
         var uniqueModeEnabled = false;
         var animationInterval;
-        var recentPicks = []; 
+        var recentPicks = [[]]; 
         var isAutoStop = true; 
         var manualStopRequested = false; 
         var isRunning = false;
+        let praiseCounts = {};
+        let isListExpanded = false;
+
+        function handlePraise() {
+            if (names.length === 0) {
+                showToast('请先上传学生名单');
+                return;
+            }
+            
+            // 获取最近一次点名的学生
+            const lastPicked = recentPicks.length > 0 
+            ? recentPicks[recentPicks.length - 1]  // 获取最后一次点名的所有学生
+            : [];
+                // 添加数组类型检查
+                if (!Array.isArray(lastPicked) || lastPicked.length === 0) {
+                showToast('请先进行有效的随机点名');
+                return;
+            }
+
+            // 为每个被点名的同学增加小红花
+            lastPicked.forEach(student => {
+                praiseCounts[student] = (praiseCounts[student] || 0) + 1;
+            });
+            
+            // // 播放音效
+            // const audio = new Audio('voice/voice.mp3');
+            // audio.play().catch(e => {
+            //     // 添加自动播放处理
+            //     document.body.addEventListener('click', () => {
+            //         audio.play();
+            //     }, { once: true });
+            //     showToast('点击页面任意位置播放音效');
+            // });
+                        
+            // 显示烟花特效
+            createFireworks();
+            
+            // 更新夸夸榜
+            updatePraiseList();
+            
+            showToast(`夸一夸 ${lastPicked.join('、')} 🌟`, 2000);
+        }
+
+        function createFireworks() {
+            const emojis = ['✨', '🌟', '🎉', '🎊', '🏆', '💫', '⭐️', '🎇'];
+            const animationTypes = ['rise', 'spin'];
+            
+            // 在点击位置生成10个emoji
+            for(let i = 0; i < 50; i++) {
+                const emoji = document.createElement('div');
+                emoji.className = 'emoji-effect';
+                emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                
+                // 随机位置
+                emoji.style.left = `${Math.random() * 80 + 10}%`;
+                emoji.style.bottom = `${Math.random() * 30}%`;
+                
+                // 随机动画参数
+                emoji.style.animation = `
+                    emoji-${animationTypes[Math.floor(Math.random() * animationTypes.length)]} 
+                    ${Math.random() * 1 + 1.5}s 
+                    ease-out 
+                    forwards
+                `;
+                
+                // 随机颜色
+                emoji.style.color = `hsl(${Math.random() * 360}, 70%, 60%)`;
+                
+                document.body.appendChild(emoji);
+                setTimeout(() => emoji.remove(), 2000);
+            }
+        }
+
+
+
+
+        function toggleList() {
+            const content = document.querySelector('.list-content');
+            content.classList.toggle('expanded');
+            const header = document.querySelector('.list-header');
+            header.textContent = `🌟 夸夸榜（点击${content.classList.contains('expanded') ? '收起' : '展开'}）`;
+        }
+
+        function updatePraiseList() {
+            const praiseList = document.getElementById('praiseList');
+            const hasData = Object.keys(praiseCounts).length > 0;
+            
+            praiseList.style.display = hasData ? 'block' : 'none';
+
+            const list = Object.entries(praiseCounts)
+                .sort((a, b) => {
+                    if (b[1] !== a[1]) return b[1] - a[1];
+                    const lastPickedNames = recentPicks.flat();
+                    return lastPickedNames.lastIndexOf(b[0]) - lastPickedNames.lastIndexOf(a[0]);
+                })
+                .map(([name, count]) => `
+                    <div class="student-praise-item">
+                        <span>${recentPicks.flat().includes(name) ? '🌸' : '🌼'} ${name}</span>
+                        <span class="praise-count">${count}</span>
+                    </div>
+                `).join('');
+            
+            document.querySelector('.list-content').innerHTML = list;
+        }
 
         function handleStart() {
             const btn = document.getElementById('startBtn');
@@ -466,7 +669,8 @@
                                     !finalNames.includes(name));
                                 updateRemainingCount();
                             }
-                            updateRecentPicks(finalNames);
+                            const currentPicks = [...finalNames];
+                            updateRecentPicks(currentPicks);
                             manualStopRequested = false;
                             resultDiv.onclick = null;
                         }
@@ -500,10 +704,12 @@
 
 
         function updateRecentPicks(newPicks) {
-            recentPicks.push(...newPicks);
-            while (recentPicks.length > 10) {
-                recentPicks.shift();
-            }
+                // 将每次点名的结果作为独立数组存储
+                recentPicks.push([...newPicks]);
+                // 保留最近5次记录
+                if (recentPicks.length > 5) {
+                    recentPicks.shift();
+                }
         }
         function checkAvailableNames() {
             if (uniqueModeEnabled && availableNames.length === 0) {
@@ -557,5 +763,13 @@
         }
     </script>
     <div id="toast" class="toast"></div>
+    <div id="praiseList" class="praise-list">
+        <div class="list-header" onclick="toggleList()">
+            🌟 夸夸榜（点击展开）
+        </div>
+        <div class="list-content">
+            <!-- 动态内容 -->
+        </div>
+    </div>    
 </body>
 </html>
